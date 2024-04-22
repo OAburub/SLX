@@ -31,6 +31,8 @@ class Slide extends StorylineXObject{
                 StorylineX.triggerEvent("mouseup_" + name);
             })
         }
+        slide.nextSlide = function(){return slide.collection.models[slide.slideNumberInScene()]}
+        slide.prevSlide = function(){return slide.collection.models[slide.slideNumberInScene() - 2]}
     }
 }
 class SlideLayer extends StorylineXObject{
@@ -99,6 +101,10 @@ StorylineX.triggerEvent = function(string){
 StorylineX.wait = function(s){
     setTimeout(() => {this.triggerEvent("waited_" + String(s) + "_seconds");}, s * 1000)
 }
+StorylineX.getCurrentScene = function(){
+    return DS.windowManager.getCurrentWindowSlide().getScene();
+}
+StorylineX.getCurrentSlide = DS.windowManager.getCurrentWindowSlide;
 console.hideWarnings = function(){
     console.oldWarn = console.warn;
     console.warn = new function(){};

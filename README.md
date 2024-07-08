@@ -20,7 +20,7 @@ All of these capabilities will be accessible via JavaScript under an object name
 The following triggers or events are global triggers:
 #### Wait Event 
 _Event String:_`waited_<seconds>_seconds`
-If you call `Storyline.wait(x)` in a JavaScript block, Storyline will trigger the wait event after that amount of seconds passes.
+If you call `StorylineX.wait(x)` in a JavaScript block, Storyline will trigger the wait event after that amount of seconds passes.
 As an example, if you call `StorylineX.wait(1);`, After 1 second the event `waited_1_seconds` will trigger.
 
 ### JavaScript Functions 
@@ -71,11 +71,11 @@ Returns the internal storyline object which stores the slide.
 #### `get(<key>)` 
 Takes in a string representing the desired attribute's name, and returns the value of the attribute. Attributes are data stored and used by SCORM, and has plenty of useful information. Equivalent to `getStorylineObject().get(<key>)` or `getStorylineObject().attributes[<key>]`
 #### `getElement()` 
-Returns the HTML5 element containing the slide. Useful for changing HTML attributes and CSS styles. If this function returns `undefined`, the element you are looking for does not have an HTML5 element attached to it.
+Returns the HTML element containing the slide. Useful for changing HTML attributes and CSS styles. If this function returns `undefined`, the element you are looking for does not have an HTML element attached to it.
 #### `nextSlide()`
-returns the next slide in the scene.
+Returns the next slide in the scene.
 #### `prevSlide()`
-returns the previous slide in the scene
+Returns the previous slide in the scene
 ## Slide Layers 
 Slide layers are stored inside each slide under the names `layer_<number>` with the number of the layer from bottom to top.
 The added number will always be 2 digits long
@@ -103,12 +103,15 @@ Returns the internal storyline object which stores the layer.
 #### `get(<key>)` 
 Takes in a string representing the desired attribute's name, and returns the value of the attribute. Attributes are data stored and used by SCORM, and has plenty of useful information. Equivalent to `getStorylineObject().get(<key>)` or `getStorylineObject().attributes[<key>]`
 #### `getElement()` 
-Returns the HTML5 element containing the layer. Useful for changing HTML attributes and CSS styles. If this function returns `undefined`, the element you are looking for does not have an HTML5 element attached to it.
+Returns the HTML element containing the layer. Useful for changing HTML attributes and CSS styles. If this function returns `undefined`, the element you are looking for does not have an HTML element attached to it.
 ### JavaScript Fields 
 #### `index` 
 A field which stores the index of the layer inside a slide.
 ## Slide Objects 
 Most of the functionality in this library is tied to slide objects. Once you have accessed the slide objects you want, you can use multiple functions and tools.
+Slide Objects are stored inside slide layers. Unforunately you can't get them by name, but you can get them by order of placement. This might not always be accurate since hidden objects used by storylines, as well as usage of the master slide, and the recommended method is to use `getObjectByID()` from the slidelayer.
+Nevertheless, they are stored under `obj_<number>` where the number is always 2 digits long, and starts from 00.
+For example, you would write `StorylineX.Scene3.Starting_Slide_001.layer_01.obj_03`
 ### Triggers 
 #### Mouse Up Event 
 _Event String:_ `mouse_up_object_<id>`
@@ -127,7 +130,7 @@ Returns the internal storyline object which stores the slide object
 #### `get(<key>)` 
 Takes in a string representing the desired attribute's name, and returns the value of the attribute. Attributes are data stored and used by SCORM, and has plenty of useful information. Equivalent to `getStorylineObject().get(<key>)` or `getStorylineObject().attributes[<key>]`
 #### `getElement()` 
-Returns the HTML5 element containing the object. Useful for changing HTML attributes and CSS styles. If this function returns `undefined`, the element you are looking for does not have an HTML5 element attached to it.
+Returns the HTML element containing the object. Useful for changing HTML attributes and CSS styles. If this function returns `undefined`, the element you are looking for does not have an HTML element attached to it.
 ### JavaScript Fields 
 #### `Id` 
 Returns the ID of the object.

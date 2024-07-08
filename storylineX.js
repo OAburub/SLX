@@ -5,7 +5,7 @@ class StorylineXObject{
             this.getElement = function(){return object.currView.el};
         }
         if (object.attributes){
-            this.get = object.get;
+            this.get = function(t){return object.get(t)}
         }
     }
 }
@@ -18,21 +18,28 @@ class Slide extends StorylineXObject{
     constructor(slide, name){
         super(slide);
         this.name = name;
-        if (slide.currView){
-            slide.currView.el.addEventListener("mousemove", event =>{
-                try{
-                    console.hideWarnings();
-                    GetPlayer().SetVar("mouse_pos_x", event.offsetX * DS.scaler.windowScale);
-                    GetPlayer().SetVar("mouse_pos_y", event.offsetY * DS.scaler.windowScale);
-                    console.unhideWarnings();
-                }catch{}
-            });
-            slide.currView.el.addEventListener("mouseup", event =>{
-                StorylineX.triggerEvent("mouseup_" + name);
-            })
+        this.listenToMouseEvents = function(){
+            if (slide.currView){
+                slide.currView.el.addEventListener("mousemove", event =>{
+                    event.stopPropagation()
+                    try{
+                        console.hideWarnings();
+                        let x = event.clientX - slide.currView.el.getBoundingClientRect().x
+                        let y = event.clientY - slide.currView.el.getBoundingClientRect().y
+                        GetPlayer().SetVar("mouse_pos_x", x / DS.scaler.windowScale);
+                        GetPlayer().SetVar("mouse_pos_y", y / DS.scaler.windowScale);
+                        console.unhideWarnings();
+                    }catch(e){
+                    }
+                });
+                slide.currView.el.addEventListener("mouseup", event =>{
+                    event.stopPropagation()
+                    StorylineX.triggerEvent("mouse_up_" + name);
+                })
+            }
         }
-        slide.nextSlide = function(){return slide.collection.models[slide.slideNumberInScene()]}
-        slide.prevSlide = function(){return slide.collection.models[slide.slideNumberInScene() - 2]}
+        this.nextSlide = function(){return slide.collection.models[slide.slideNumberInScene()]}
+        this.prevSlide = function(){return slide.collection.models[slide.slideNumberInScene() - 2]}
     }
 }
 class SlideLayer extends StorylineXObject{
@@ -57,18 +64,21 @@ class SlideLayer extends StorylineXObject{
 class SlideObject extends StorylineXObject{
     constructor(object){
         super(object)
-        this.hide = object.hide;
-        this.show = object.show;
-        this.moveTo = object.moveTo;
+        this.hide = function(){object.hide()};
+        this.show = function(){object.show()};
+        this.moveTo = function(x, y){object.currView.moveTo(x, y)};
         this.Id = object.get("id");
         this.slideTo = function(x, y, s){
             object.currView.el.style.transition = "transform " + String(s) + "s";
-            object.moveTo(x, y);
+            object.currView.moveTo(x, y);
             setTimeout(()=>{object.currView.el.style.transition = ""}, s * 1000);
         }
-        object.currView.el.addEventListener("mouseup", event =>{
-            StorylineX.triggerEvent("mouseup_object_" + object.get("id"));
-        })
+        this.listenToMouseEvents = function() {
+            object.currView.el.addEventListener("mouseup", event =>{
+                event.stopPropagation()
+                StorylineX.triggerEvent("mouse_up_object_" + object.get("id"));
+            })
+        }
     }
 }
 
@@ -77,10 +87,10 @@ let StorylineX = {};
 DS.presentation.scenes().slice(2).forEach(scene => {
     StorylineX[scene.attributes.lmsId] = new Scene(scene);
     scene.slides().models.forEach(slide => {
-        let name = slide.attributes.title.replace(" ", "_");
+        let name = slide.attributes.title.replaceAll(" ", "_");
         while (name in StorylineX[scene.attributes.lmsId]){
             let match = name.match(/_(\d+)$/);
-            name = match? name.replace(/_\d+$/, "_" + String(parseInt(match[1]) + 1).padStart(3, '0')) : name + "_001";
+            name = match? name.replaceAll(/_\d+$/g, "_" + String(parseInt(match[1]) + 1).padStart(3, '0')) : name + "_001";
         }
         StorylineX[scene.attributes.lmsId][name] = new Slide(slide, name);
         let i = 0;
@@ -89,6 +99,20 @@ DS.presentation.scenes().slice(2).forEach(scene => {
             i += 1;
         })
     });
+});
+DS.pubSub.on(DS.events.slide.READY, function(...args) {
+    let slide = StorylineX.getCurrentSlide()
+    slide.listenToMouseEvents()
+    let i = 0;
+    slide.get("slideLayers").models.forEach(layer => {
+        slide["layer_" + String(parseInt(i)).padStart(2, "0")] = new SlideLayer(layer, i);
+        let j = 0;
+        layer.objectIndex.forEach(object => {
+            slide["layer_" + String(parseInt(i)).padStart(2, "0")]["obj_" + String(parseInt(j)).padStart(2, "0")] = new SlideObject(object);
+            j += 1
+        })
+        i += 1;
+    })
 });
 StorylineX.triggerEvent = function(string){
     try{
@@ -102,9 +126,17 @@ StorylineX.wait = function(s){
     setTimeout(() => {this.triggerEvent("waited_" + String(s) + "_seconds");}, s * 1000)
 }
 StorylineX.getCurrentScene = function(){
-    return DS.windowManager.getCurrentWindowSlide().getScene();
+    return new Scene(DS.windowManager.getCurrentWindowSlide().getScene());
 }
-StorylineX.getCurrentSlide = DS.windowManager.getCurrentWindowSlide;
+StorylineX.getCurrentSlide = function(){
+    scene = StorylineX[StorylineX.getCurrentScene().get("lmsId")]
+    for (slide in scene){
+        if (scene[slide].get && scene[slide].get('id') == DS.windowManager.getCurrentWindowSlide().get('id')){
+            return scene[slide];
+        } 
+    } 
+    return undefined;
+}
 console.hideWarnings = function(){
     console.oldWarn = console.warn;
     console.warn = new function(){};
